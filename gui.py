@@ -283,7 +283,33 @@ class Input(Object):
                         self.value += event.unicode
 
 
+class Scroll(Object):
+    def __init__(self, rect, group, outline=1, scroll_speed=30, margin=10):
+        super().__init__(rect, group, None, outline, "")
+        self.elements = [[]]
 
+    def add_line(self, *args):
+        while len(args) < len(self.elements):
+            self.elements.append([])
+        for i in range(len(args)):
+            self.elements[i] += args[i]
+
+    def add_column(self, element_list, position=0):
+        self.elements[position] += element_list
+
+    def draw(self):
+        self.window.blit(self.c_main(), self.rect)
+        self.draw_outline()
+        self._text()
+
+    def event(self, mouse, event_list):
+        if self.rect.collidepoint(mouse):
+            for event in event_list:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:
+                        pass
+                    elif event.button == 5:
+                        pass
 
 
 
