@@ -10,6 +10,7 @@ C["GREEN"] = (0, 255, 0)
 C["BLUE"] = (0, 0, 255)
 
 C["BROWN"] = (125, 80, 35)
+C["DARKRED"] = (139, 0, 0)
 
 C["BLACK"] = (0, 0, 0)
 C["WHITE"] = (255, 255, 255)
@@ -20,6 +21,7 @@ C["LIGHTGREY"] = (180, 180, 180)
 C["LIGHTERGREY"] = (210, 210, 210)
 
 # Default object colors
+C["canvas"] = (230, 230, 230)
 C["main"] = (210, 210, 210)
 C["main_trans"] = (0, 0, 0, 125)
 C["outline"] = (0, 0, 0)

@@ -26,6 +26,12 @@ class Group:
                 item.draw()
 
     @staticmethod
+    def group_list(group):
+        for item in Group.manager:
+            if item.group == group:
+                yield item
+
+    @staticmethod
     def hide_group(group):
         for item in Group.manager:
             if item.group == group:
@@ -71,6 +77,7 @@ class Object(Group):
             txt = self.font.render(self.text, True, self.c_font)
         else:
             txt = self.font.render(str(text), True, self.c_font)
+
         if self.align == "center":
             rect = txt.get_rect(center=(rect[0] + rect[2] / 2, rect[1] + rect[3] / 2))
         else:
@@ -83,12 +90,18 @@ class Object(Group):
     def set_visible(self, boolean):
         self.visible = boolean
 
+    def set_text(self, new):
+        self.text = str(new)
+
     def get_value(self):
         return self.value
 
     def check_focus(self, mouse):
         if self.rect.collidepoint(mouse):
             return True
+
+    def set_func(self, func):
+        self.func = func
 
 
 class Button(Object):
@@ -142,6 +155,7 @@ class Overlay(Object):
 
     def __init__(self, rect, group, outline=1, text="", exit_button=40, movable=False, window_name=""):
         super().__init__(rect, group, None, outline, text)
+        self.set_color(["WHITE"])
         self.movable = movable
         self.window_name = window_name
         self.exit_button = exit_button
@@ -151,6 +165,7 @@ class Overlay(Object):
         self.child_list = []
         self.original_child_list = []
 
+        self.running = False
         self.mouse_move = False
         self.original_rect = pygame.Rect(self.rect)
 
@@ -164,12 +179,13 @@ class Overlay(Object):
 
         if self.exit_button is not False:
             self.add(Button((self.rect[0]+self.rect[2]-self.exit_button, self.rect[1], self.exit_button, FONT_SIZE),
-                            self.quit, self.group, text="X"))
+                            self.group, self.quit, text="X"))
 
-    def add(self, obj):
-        obj.group = self.group_share
-        self.child_list.append(obj)
-        self.original_child_list.append(pygame.Rect(obj.rect))
+    def add(self, *args):
+        for obj in args:
+            obj.group = self.group_share
+            self.child_list.append(obj)
+            self.original_child_list.append(pygame.Rect(obj.rect))
 
     def draw(self):
         self.window.blit(self.c_main(), self.rect)
@@ -215,6 +231,9 @@ class Overlay(Object):
 
             pygame.display.update()
 
+    def get_group(self):
+        return self.group_share
+
     def reset(self):
         for i in range(len(self.child_list)):
             self.child_list[i].rect = pygame.Rect(self.original_child_list[i])
@@ -222,7 +241,7 @@ class Overlay(Object):
 
     def quit(self):
         self.running = False
-        self.mouse_move = False
+        self.mouse_move = False  # Otherwise next time it's visible it jumps to your mouse
         self.toggle_visible()
 
 
@@ -260,7 +279,7 @@ class Input(Object):
         if self.state == "Clicked":
             for event in event_list:
                 if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                         self.state = "None"
                         return
                     elif event.key == pygame.K_BACKSPACE:
