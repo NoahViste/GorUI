@@ -4,6 +4,7 @@ from settings import *
 from textures import Texture
 import random
 from functools import partial
+import copy
 
 
 class Tester:
@@ -28,26 +29,40 @@ class Tester:
         Button((0, 0, 40, 40), self.group, self.quit, text="X")
         g = Button((40, 0, 120, 40), self.group, None, text="Settings")
 
-        ov = Overlay((200, 200, 300, 240), self.group, window_name="Canvas Resolution", movable=True)
+
+
+        ov = Overlay((50, 50, 300, 400), self.group, window_name="Canvas Resolution", movable=True)
         ov.toggle_visible()
-        ov.add(Display((220, 240, 180, 30), self.group, outline=-1, text="Width"))
-        self.width = Input((400, 240, 80, 30), self.group, int_only=True, keep_text=False)
+        ov.add(Display((20, 40, 180, 30), self.group, outline=-1, text="Width"))
+        self.width = Input((200, 40, 80, 30), self.group, int_only=True, keep_text=False)
 
-        ov.add(Display((220, 270, 180, 30), self.group, outline=-1, text="Height"))
-        self.height = Input((400, 270, 80, 30), self.group, int_only=True, keep_text=False)
+        ov.add(Display((20, 70, 180, 30), self.group, outline=-1, text="Height"))
+        self.height = Input((200, 70, 80, 30), self.group, int_only=True, keep_text=False)
 
-        color = Button((220, 310, 260, 30), self.group, self.can.reset_position, text="Reset position")
+        color = Button((20, 110, 260, 30), self.group, self.can.reset_position, text="Reset position")
         color.set_color(c_font="DARKRED")
         ov.add(color)
 
-        ov.add(Button((220, 400, 260, 30), self.group, self.set_value, text="Edit"))
+        ov.add(Button((20, 360, 260, 30), self.group, self.set_value, text="Edit"))
 
-        ov.add(self.width)
-        ov.add(self.height)
+        z = Scroll((20, 150, 260, 200), self.group)
+        q = []
+        k = []
+        for i in range(10):
+            q.append(Button((0, 0, 100, 30), self.group, self.nothing, text="tg{}".format(i)))
+            k.append(Button((0, 0, 100, 30), self.group, None, text="tg{}".format(i-1)))
+        z.add_column(*q)
+        z.add_line(*k)
+        ov.add(z)
+        ov.add_children(*z.loop_all())
+        s = Slider((300, 100, 100, 40), self.group)
+        ov.add(s)
+        ov.add_children(s.pull)
+        y = Display((400, 100, 60, 40), self.group, text=s.percent)
+        ov.add(y)
+
+        ov.add(self.width, self.height)
         g.set_func(ov.toggle_visible)
-
-        self.islanders()
-        Button((160, 0, 120, 40), self.group, self.island.toggle_visible, text="Island")
 
     def set_value(self):
         self.can.set_size(self.width.get_value(), self.height.get_value())
@@ -78,61 +93,6 @@ class Tester:
 
     def nothing(self):
         pass
-
-    def islanders(self):
-        island = Overlay((100, 100, 600, 400), self.group, window_name="Islanders", movable=True)
-        self.island_show = Display((110, 345, 200, 40), self.group)
-        self.island_show2 = Display((110, 385, 200, 40), self.group)
-        island.add(self.island_show)
-        island.add(self.island_show2)
-        self.island_new()
-        for i in range(6):
-            b = Button((110 + i * 40, 135, 40, 40), self.group, self.nothing, text=i+1)
-            b2 = Button((110 + i * 40, 175, 40, 40), self.group, self.nothing, text=i+7)
-            b.set_func(partial(self.island_func, b))
-            b2.set_func(partial(self.island_func, b2))
-            island.add(b, b2)
-        island.add(Button((110, 220, 200, 40), self.group, self.island_weigh, text="Weigh"))
-        island.add(Button((110, 260, 200, 40), self.group, self.island_reset, text="Reset"))
-        island.add(Button((110, 300, 200, 40), self.group, self.island_new, text="New"))
-        self.island = island
-        self.island_reset()
-
-    def island_func(self, b):
-        b.set_color(c_font="DARKRED")
-        self.island_tbweigh.append(b)
-
-    def island_weigh(self):
-        p = []
-        n = 0
-        m = 0
-        for i in self.island_tbweigh:
-            p.append(self.island_all[int(i.text)])
-        print(p)
-        for i in range(len(p)//2):
-            n += p[i]
-            m += p[i+len(p)//2]
-        print(n, m)
-        if n < m:
-            self.island_show2.set_text("{} lighter".format(3))
-        elif n == m:
-            self.island_show2.set_text("Same weight")
-        else:
-            self.island_show2.set_text("First heavier")
-
-    def island_reset(self):
-        self.island_tbweigh = []
-        for but in Group.group_list(self.island.get_group()):
-            but.set_color()
-
-    def island_new(self):
-        self.island_all = [1 for i in range(12)]
-        g = random.randint(0, 11)
-        if random.randint(1, 2):
-            self.island_all[g] += 0.1
-        else:
-            self.island_all[g] -= 0.1
-        self.island_show.set_text(g)
 
     def quit(self):
         self.running = False
