@@ -1,12 +1,13 @@
 from settings import *
 from textures import Texture
 import pygame
+import copy
 
 
 class Group:
     pygame.init()
     window = pygame.display.set_mode((1, 1))  # This is suboptimal, but it works
-    font = pygame.font.SysFont(FONT, FONT_SIZE, False)
+    font = pygame.font.SysFont(FONT, FONT_SIZE)
     manager = []
 
     def __init__(self):
@@ -37,23 +38,33 @@ class Group:
                 item.set_visible(False)
 
     @staticmethod
+    def get_all():
+        for obj in copy.copy(Group.manager):
+            yield obj
+
+    @staticmethod
     def set_window(window):
         Group.window = window
 
 
-class Object(Group):
+class Widget(Group):
+    item_id = 0
+
     def __init__(self, rect, group, func, outline, text):
         super().__init__()
         self.rect = pygame.Rect(rect)
         self.set_color()
         self.func = func
         self.outline = outline
-        self.text = str(text)
+        self.text = text
         self.visible = True
         self.value = None
+        self.value_pointer = [0]
         self.group = group
         self.align = "center"  # Text align
         self.offset = (0, 0)  # Offsets text
+        self.id = self.item_id
+        Widget.item_id += 1
 
     def set_color(self, c_main=["main"], c_outline="outline", c_font="font",
                   c_hover=["hover"], c_click=["click"], c_line="line"):
@@ -74,7 +85,10 @@ class Object(Group):
     def _text(self, text=None):
         rect = self.rect
         if text is None:
-            txt = self.font.render(self.text, True, self.c_font)
+            try:
+                txt = self.font.render(str(self.text.get_value()), True, self.c_font)
+            except AttributeError:
+                txt = self.font.render(str(self.text), True, self.c_font)
         else:
             txt = self.font.render(str(text), True, self.c_font)
 
@@ -93,18 +107,28 @@ class Object(Group):
     def set_text(self, new):
         self.text = str(new)
 
+    def set_outline(self, new=1):
+        self.outline = new
+
+    def del_outline(self):
+        self.outline = -1
+
     def get_value(self):
         return self.value
 
-    def check_focus(self, mouse):
+    def get_value_pointer(self):
+        pass
+
+    def check_collision(self, mouse):
         if self.rect.collidepoint(mouse):
             return True
+        return False
 
     def set_func(self, func):
         self.func = func
 
 
-class Button(Object):
+class Button(Widget):
     def __init__(self, rect, group, func=None, outline=1, text=""):
         super().__init__(rect, group, func, outline, text)
         self.state = "None"  # None, Hover, Click
@@ -123,14 +147,14 @@ class Button(Object):
         self._text()
 
     def event(self, mouse, event_list):
-        if self.rect.collidepoint(mouse):
+        if self.check_collision(mouse):
             self.state = "Hover"
 
             if pygame.mouse.get_pressed()[0]:
                 self.state = "Click"
 
             for event in event_list:
-                if event.type == pygame.MOUSEBUTTONUP:
+                if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                     try:
                         self.value = self.func()
                     except TypeError:
@@ -145,7 +169,7 @@ class Button(Object):
         return False
 
 
-class Display(Object):
+class Display(Widget):
     def __init__(self, rect, group, outline=1, text=""):
         super().__init__(rect, group, None, outline, text)
 
@@ -158,7 +182,7 @@ class Display(Object):
         pass
 
 
-class Overlay(Object):
+class Overlay(Widget):
     unique_counter = 0
 
     def __init__(self, rect, group, outline=1, text="", exit_button=40, movable=False, window_name=""):
@@ -208,6 +232,9 @@ class Overlay(Object):
         Group.all_draw(self.group_share)
 
     def event(self, mouse, event_list):
+        if self.check_collision:
+            Group.focus = self
+
         if self.movable:
             if self.topbar.rect.collidepoint(mouse) or self.mouse_move:
                 if pygame.mouse.get_pressed()[0]:
@@ -258,7 +285,7 @@ class Overlay(Object):
         self.toggle_visible()
 
 
-class Input(Object):
+class Input(Widget):
     def __init__(self, rect, group, outline=1, text="", keep_text=False, int_only=False, default_int=0):
         super().__init__(rect, group, None, outline, text)
         self.value = ""
@@ -277,17 +304,18 @@ class Input(Object):
         self._text(self.value)
 
     def event(self, mouse, event_list):
-        if pygame.mouse.get_pressed()[0]:
-            if self.rect.collidepoint(mouse):
-                self.state = "Clicked"
-                if not self.keep_text:
-                    if self.int_only:
-                        self.value = self.default_int
-                    else:
-                        self.value = ""
+        for event in event_list:
+            if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                if self.rect.collidepoint(mouse):
+                    self.state = "Clicked"
+                    if not self.keep_text:
+                        if self.int_only:
+                            self.value = self.default_int
+                        else:
+                            self.value = ""
 
-            else:
-                self.state = "None"
+                else:
+                    self.state = "None"
 
         if self.state == "Clicked":
             for event in event_list:
@@ -315,7 +343,7 @@ class Input(Object):
                         self.value += event.unicode
 
 
-class Scroll(Object):
+class Scroll(Widget):
     unique_counter = 0
 
     def __init__(self, rect, group, outline=1, scroll_speed=30, margin=10):
@@ -390,28 +418,33 @@ class Scroll(Object):
     def calc_visible(self, obj):
         if self.rect.y <= obj.rect.y and obj.rect.y + obj.rect.height <= self.rect.y + self.rect.height - self.margin:
             obj.set_visible(True)
+
         else:
             obj.set_visible(False)
 
 
-class Slider(Object):
-    def __init__(self, rect, group, func=None, outline=1, margin=10, line_width=1):
+class Slider(Widget):
+    def __init__(self, rect, group, func=0, outline=1, margin=10, line_width=1):
         super().__init__(rect, group, None, outline, "")
         self.pull = Button((self.rect.x + margin, self.rect.y + margin, 15, self.rect.height-2*margin), self.group)
         self.func = func
         self.margin = margin
         self.line_width = line_width
         self.pulling = False
+        self.pull.rect.centerx = self._line_start[0]
 
-    def func_translate(self):
-        if type(self.func, int):
-            pass
+    def get_value(self):
+        if type(self.func) is int:
+            return self.percent
 
-        if type(self.func, list):
-            pass
+        if type(self.func) is list:
+            try:
+                return self.func[self.percent//(100//len(self.func))]
+            except IndexError:
+                return self.func[len(self.func)-1]
 
         if callable(self.func):
-            pass
+            return self.func(self.percent)
 
     @property
     def percent(self):
@@ -419,11 +452,11 @@ class Slider(Object):
 
     @property
     def _line_start(self):
-        return self.rect.x + self.margin, self.rect.centery
+        return self.rect.x + 2*self.margin, self.rect.centery
 
     @property
     def _line_end(self):
-        return self.rect.x + self.rect.width - self.margin, self.rect.centery
+        return self.rect.x + self.rect.width - 2*self.margin, self.rect.centery
 
     def draw(self):
         self.window.blit(self.c_main(), self.rect)
@@ -444,6 +477,38 @@ class Slider(Object):
                 self.pull.rect.centerx = self._line_end[0]
         else:
             self.pulling = False
+
+
+class Tick(Widget):
+    def __init__(self, rect, group, func=None, outline=1, text="√"):
+        super().__init__(rect, group, func, outline, text)
+        self.ticked = False
+        self.hover = False
+        self.set_color(c_font="DARKRED", c_click=["main"])
+
+    def draw(self):
+        self.window.blit(self.c_main(), self.rect)
+
+        if self.hover:
+            self.window.blit(self.c_hover(), self.rect)
+
+        if self.ticked:
+            self._text()
+
+        self.draw_outline()
+
+    def event(self, mouse, event_list):
+        if self.rect.collidepoint(mouse):
+            self.hover = True
+            for event in event_list:
+                if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    self.ticked = not self.ticked
+
+        else:
+            self.hover = False
+
+    def get_value(self):
+        return self.ticked
 
 
 

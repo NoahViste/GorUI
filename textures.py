@@ -52,7 +52,7 @@ class Texture:
             for image in self.native:
                 if self.name in image:
                     best_match.append(image)
-            raise Exception("'{}' texture does not exist, did you mean: {}".format(self.name, best_match))
+            raise Exception("'{}' texture does not exist, did you mean: {}?".format(self.name, best_match))
 
         # If the resolution doesn't exist add it to dict
         if self.s_res not in self.scaled:

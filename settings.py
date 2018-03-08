@@ -2,6 +2,7 @@
 WINDOW = (900, 500)
 FONT = "new time roman"
 FONT_SIZE = 28
+GROUP = "maker"
 
 # Colors:
 C = {}
