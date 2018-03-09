@@ -2,6 +2,7 @@ from settings import *
 from textures import Texture
 import pygame
 import copy
+import time
 
 
 class Group:
@@ -46,6 +47,12 @@ class Group:
     def set_window(window):
         Group.window = window
 
+    @staticmethod
+    def get_obj(item_id):
+        for obj in Group.manager:
+            if obj.get_id() == item_id:
+                return obj
+
 
 class Widget(Group):
     item_id = 0
@@ -61,9 +68,12 @@ class Widget(Group):
         self.value = None
         self.value_pointer = [0]
         self.group = group
+        self.group_share = None
         self.align = "center"  # Text align
         self.offset = (0, 0)  # Offsets text
         self.id = self.item_id
+        self.parent = None
+        self.child = None
         Widget.item_id += 1
 
     def set_color(self, c_main=["main"], c_outline="outline", c_font="font",
@@ -122,10 +132,27 @@ class Widget(Group):
     def check_collision(self, mouse):
         if self.rect.collidepoint(mouse):
             return True
-        return False
 
     def set_func(self, func):
         self.func = func
+
+    def set_parent(self, parent):
+        self.parent = parent
+
+    def set_child(self, child):
+        self.child = child
+
+    def get_parent(self):
+        return self.parent
+
+    def get_children(self):
+        return self.child
+
+    def get_id(self):
+        return self.id
+
+    def get_self(self):
+        return self
 
 
 class Button(Widget):
@@ -192,7 +219,7 @@ class Overlay(Widget):
         self.window_name = window_name
         self.exit_button = exit_button
 
-        self.group_share = group + str(self.unique_counter) + "overlay"
+        self.group_share = group + "_" + str(self.unique_counter) + "overlay"
         Overlay.unique_counter += 1
         self.child_list = []
         self.original_child_list = []
@@ -232,11 +259,11 @@ class Overlay(Widget):
         Group.all_draw(self.group_share)
 
     def event(self, mouse, event_list):
-        if self.check_collision:
-            Group.focus = self
+        if self.check_collision(mouse):
+            pass
 
         if self.movable:
-            if self.topbar.rect.collidepoint(mouse) or self.mouse_move:
+            if self.topbar.check_collision(mouse) or self.mouse_move:
                 if pygame.mouse.get_pressed()[0]:
                     if not self.mouse_move:
                         self.mouse_move = mouse
@@ -306,7 +333,7 @@ class Input(Widget):
     def event(self, mouse, event_list):
         for event in event_list:
             if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                if self.rect.collidepoint(mouse):
+                if self.check_collision(mouse):
                     self.state = "Clicked"
                     if not self.keep_text:
                         if self.int_only:
@@ -353,7 +380,7 @@ class Scroll(Widget):
         self.elements = [[]]
         self.displace = 0
 
-        self.group_share = group + str(self.unique_counter) + "scroll"
+        self.group_share = group + "_" + str(self.unique_counter) + "scroll"
         Scroll.unique_counter += 1
 
     def add_line(self, *args, auto_align=True):
@@ -400,7 +427,7 @@ class Scroll(Widget):
         Group.all_draw(self.group_share)
 
     def event(self, mouse, event_list):
-        if self.rect.collidepoint(mouse):
+        if self.check_collision(mouse):
             for event in event_list:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 4:
@@ -498,7 +525,7 @@ class Tick(Widget):
         self.draw_outline()
 
     def event(self, mouse, event_list):
-        if self.rect.collidepoint(mouse):
+        if self.check_collision(mouse):
             self.hover = True
             for event in event_list:
                 if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
