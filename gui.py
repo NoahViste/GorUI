@@ -15,27 +15,27 @@ class Group:
         self.manager.append(self)
 
     @staticmethod
-    def all_event(group, mouse, event_list):
+    def all_event(group, mouse, event_list, include_global=True):
         for item in reversed(Group.manager):
-            if item.visible and item.group == group:
+            if item.visible and (item.group == group or (item.group is "" and include_global)):
                 item.event(mouse, event_list)
 
     @staticmethod
-    def all_draw(group):
+    def all_draw(group, include_global=True):
         for item in Group.manager:
-            if item.visible and item.group == group:
+            if item.visible and (item.group == group or (item.group is "" and include_global)):
                 item.draw()
 
     @staticmethod
-    def group_list(group):
+    def group_list(group, include_global=False):
         for item in Group.manager:
-            if item.group == group:
+            if item.group == group or (include_global and item.group is ""):
                 yield item
 
     @staticmethod
-    def hide_group(group):
+    def hide_group(group, include_global):
         for item in Group.manager:
-            if item.group == group:
+            if item.group == group or (include_global and item.group is ""):
                 item.set_visible(False)
 
     @staticmethod
@@ -142,17 +142,14 @@ class Widget(Group):
     def set_child(self, child):
         self.child = child
 
-    def get_parent(self):
-        return self.parent
-
-    def get_children(self):
-        return self.child
-
     def get_id(self):
         return self.id
 
     def get_self(self):
         return self
+
+    def get_text(self):
+        return str(self.text)
 
 
 class Button(Widget):
@@ -212,7 +209,7 @@ class Display(Widget):
 class Overlay(Widget):
     unique_counter = 0
 
-    def __init__(self, rect, group, outline=1, text="", exit_button=40, movable=False, window_name=""):
+    def __init__(self, rect, group, outline=1, text="", exit_button=40, movable=True, window_name=""):
         super().__init__(rect, group, None, outline, text)
         self.set_color(["WHITE"])
         self.movable = movable
@@ -234,11 +231,12 @@ class Overlay(Widget):
         self.topbar = Display((0, 0, self.rect[2], FONT_SIZE),
                               self.group, text=self.window_name)
         self.topbar.set_color(["LIGHTGREY"])
-        self.add(self.topbar)
 
         if self.exit_button is not False:
-            self.add(Button((self.rect[2]-self.exit_button, 0, self.exit_button, FONT_SIZE),
-                            self.group, self.quit, text="X"))
+            self.exit_button = Button((self.rect[2]-self.exit_button, 0, self.exit_button, FONT_SIZE),
+                                      self.group, self.quit, text="X")
+
+        self.add(self.topbar, self.exit_button)
 
     def add(self, *args, keep_group=False):
         for obj in args:
@@ -256,7 +254,7 @@ class Overlay(Widget):
         self.draw_outline()
         self._text()
 
-        Group.all_draw(self.group_share)
+        Group.all_draw(self.group_share, include_global=False)  # Otherwise if the overlay is global -> recursion
 
     def event(self, mouse, event_list):
         if self.check_collision(mouse):
@@ -278,7 +276,7 @@ class Overlay(Widget):
                 else:
                     self.mouse_move = False
 
-        Group.all_event(self.group_share, mouse, event_list)
+        Group.all_event(self.group_share, mouse, event_list, include_global=False)
 
     def loop(self):
         self.set_visible(True)
@@ -301,6 +299,9 @@ class Overlay(Widget):
     def get_group(self):
         return self.group_share
 
+    def set_window_name(self, new):
+        self.topbar.set_text(new)
+
     def reset(self):
         for i in range(len(self.child_list)):
             self.child_list[i].rect = pygame.Rect(self.original_child_list[i])
@@ -315,7 +316,7 @@ class Overlay(Widget):
 class Input(Widget):
     def __init__(self, rect, group, outline=1, text="", keep_text=False, int_only=False, default_int=0):
         super().__init__(rect, group, None, outline, text)
-        self.value = ""
+        self.value = text
         if int_only: self.value = default_int
         self.state = "None"  # None, Clicked
         self.keep_text = keep_text
@@ -424,7 +425,7 @@ class Scroll(Widget):
         self.draw_outline()
         self._text()
 
-        Group.all_draw(self.group_share)
+        Group.all_draw(self.group_share, include_global=False)
 
     def event(self, mouse, event_list):
         if self.check_collision(mouse):
@@ -440,7 +441,7 @@ class Scroll(Widget):
                             obj.rect.y -= self.scroll_speed
                             self.calc_visible(obj)
 
-        Group.all_event(self.group_share, mouse, event_list)
+        Group.all_event(self.group_share, mouse, event_list, include_global=False)
 
     def calc_visible(self, obj):
         if self.rect.y <= obj.rect.y and obj.rect.y + obj.rect.height <= self.rect.y + self.rect.height - self.margin:
@@ -538,6 +539,37 @@ class Tick(Widget):
         return self.ticked
 
 
+class Builder:
+    manager = []
+    selected_widget = 0
+
+    def __init__(self, name, builder_func, hide=True):
+        self.name = name
+        self.builder_func = builder_func
+        self.ov = None
+        self.hide = hide
+        self.manager.append(self)
+
+    @staticmethod
+    def build_all():
+        for obj in Builder.manager:
+            obj.ov = obj.builder_func()
+            if obj.hide: obj.ov.quit()
+
+    @staticmethod
+    def get(name):
+        for obj in Builder.manager:
+            if obj.name == name:
+                return obj.ov
+        return None
+
+    @staticmethod
+    def show(name):
+        Builder.get(name).set_visible(True)
+
+    @staticmethod
+    def get_value():
+        return Builder.selected_widget
 
 
 

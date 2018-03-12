@@ -21,8 +21,8 @@ class Tester:
         Texture(pygame.Rect(0, 0, 5, 5), "RED").bulk("")
 
         self.can = Canvas(0, 0)
-        self.initUI()
         init_ui()
+        self.initUI()
 
         self.running = True
         self.loop()
@@ -30,8 +30,10 @@ class Tester:
     def initUI(self):
         Button((0, 0, 40, 40), self.group, self.quit, text="X")
         g = Button((40, 0, 120, 40), self.group, None, text="Settings")
+        Button((160, 0, 80, 40), self.group, partial(Builder.show, "select_widget"), text="Select")
+        Display((240, 0, 60, 40), self.group, text=Builder)
 
-        ov = Overlay((50, 50, 300, 400), self.group, window_name="Canvas Resolution", movable=True)
+        ov = Overlay((50, 50, 300, 400), self.group, window_name="Canvas Resolution")
         ov.toggle_visible()
         ov.add(Display((20, 40, 160, 30), self.group, outline=-1, text="Aspect Ratio"))
         self.width = Input((180, 40, 50, 30), self.group, int_only=True, keep_text=False)

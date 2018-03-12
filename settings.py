@@ -1,5 +1,5 @@
 # Window stuff:
-WINDOW = (900, 500)
+WINDOW = (900, 650)
 FONT = "new time roman"
 FONT_SIZE = 28
 GROUP = "maker"
@@ -20,9 +20,10 @@ C["GREY"] = (127, 127, 127)
 C["DARKGREY"] = (55, 55, 55)
 C["LIGHTGREY"] = (180, 180, 180)
 C["LIGHTERGREY"] = (210, 210, 210)
+C["LIGHTESTGREY"] = (230, 230, 230)
 
 # Default object colors
-C["canvas"] = (230, 230, 230)
+C["canvas"] = (238, 238, 238)
 C["main"] = (210, 210, 210)
 C["main_trans"] = (0, 0, 0, 125)
 C["outline"] = (0, 0, 0)

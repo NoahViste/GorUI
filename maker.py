@@ -6,7 +6,63 @@ from functools import partial
 
 
 def init_ui():
-    pass
+    Builder("select_widget", select_widget)
+    Builder("search_widget", search_widget)
+    Builder.build_all()
+
+
+def select_widget():
+    ov = Overlay((100, 100, 400, 400), "", window_name="Select Object")
+
+    id_box = Display((10, 40, 380, 100), "", outline=1)
+    id_box.set_color(["LIGHTESTGREY"])
+    id_text = Display((20, 50, 360, 30), "", text="Input object ID:", outline=-1)
+    id_text.align_text("left", (5, 0))
+    id_text.set_color(["LIGHTGREY"])
+    by_id = Input((310, 50, 70, 30), "", int_only=True)
+    id_load = Button((150, 100, 100, 30), "", func=partial(searched_widget, by_id.get_value, ov), text="Load")
+    ov.add(id_box, id_text, by_id, id_load)
+
+    search_box = Display((10, 160, 380, 100), "", outline=1)
+    search_box.set_color(["LIGHTESTGREY"])
+    search_text = Display((20, 170, 360, 30), "", text="Filter group:", outline=-1)
+    search_text.align_text("left", (5, 0))
+    search_text.set_color(["LIGHTGREY"])
+    search_group = Input((240, 170, 140, 30), "", text="Maker")
+    search_start = Button((150, 220, 100, 30), "", func=partial(Builder.show, "search_widget"), text="Search")
+    ov.add(search_box, search_text, search_group, search_start)
+
+    paste_box = Display((10, 280, 380, 50), "", outline=1)
+    paste_box.set_color(["LIGHTESTGREY"])
+    paste_text = Display((20, 290, 360, 30), "", text="Use selected:", outline=-1)
+    paste_text.align_text("left", (5, 0))
+    paste_text.set_color(["LIGHTGREY"])
+    paste_button = Button((320, 290, 60, 30), "", text="Load")
+    ov.add(paste_box, paste_text, paste_button)
+
+    return ov
+
+
+def search_widget():
+    ov = Overlay((100, 100, 400, 460), "", window_name="Search")
+
+    scroll = Scroll((10, 40, 380, 410), "")
+    scroll.set_color(["LIGHTESTGREY"])
+
+    for obj in Group.get_all():
+        scroll.add_line(Display((0, 0, 260, 30), "", text=obj.get_text()),
+                        Display((0, 0, 70, 30), "", text=obj.get_id()),
+                        Button((0, 0, 30, 30), "", func=partial(searched_widget, obj.get_id(), ov), text=">"))
+
+    ov.add(scroll)
+    ov.add_children(*scroll.loop_all())
+
+    return ov
+
+
+def searched_widget(obj_id, overlay):
+    Builder.selected_widget = obj_id
+    overlay.quit()
 
 
 class Canvas:
