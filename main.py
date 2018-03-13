@@ -36,8 +36,8 @@ class Tester:
         ov = Overlay((50, 50, 300, 400), self.group, window_name="Canvas Resolution")
         ov.toggle_visible()
         ov.add(Display((20, 40, 160, 30), self.group, outline=-1, text="Aspect Ratio"))
-        self.width = Input((180, 40, 50, 30), self.group, int_only=True, keep_text=False)
-        self.height = Input((230, 40, 50, 30), self.group, int_only=True, keep_text=False)
+        self.width = Input((180, 40, 50, 30), self.group, int_only=True, keep_text=False, max_length=3)
+        self.height = Input((230, 40, 50, 30), self.group, int_only=True, keep_text=False, max_length=3)
 
         color = Button((20, 110, 260, 30), self.group, self.can.reset_position, text="Reset position")
         color.set_color(c_font="DARKRED")

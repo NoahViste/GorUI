@@ -314,7 +314,7 @@ class Overlay(Widget):
 
 
 class Input(Widget):
-    def __init__(self, rect, group, outline=1, text="", keep_text=False, int_only=False, default_int=0):
+    def __init__(self, rect, group, outline=1, text="", keep_text=False, int_only=False, default_int=0, max_length=99):
         super().__init__(rect, group, None, outline, text)
         self.value = text
         if int_only: self.value = default_int
@@ -322,6 +322,7 @@ class Input(Widget):
         self.keep_text = keep_text
         self.int_only = int_only
         self.default_int = default_int
+        self.max_length = max_length
 
     def draw(self):
         if self.state == "None":
@@ -361,14 +362,15 @@ class Input(Widget):
                             self.value = self.value[:-1]
                         return
 
-                    if self.int_only:
-                        try:
-                            self.value = int(str(self.value) + event.unicode)
-                        except ValueError:
-                            print("Expected int")
+                    if len(str(self.value)) < self.max_length:
+                        if self.int_only:
+                            try:
+                                self.value = int(str(self.value) + event.unicode)
+                            except ValueError:
+                                print("Expected int")
 
-                    else:
-                        self.value += event.unicode
+                        else:
+                            self.value += event.unicode
 
 
 class Scroll(Widget):
