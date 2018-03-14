@@ -1,7 +1,7 @@
 # Window stuff:
 WINDOW = (900, 650)
-FONT = "new time roman"
-FONT_SIZE = 28
+FONT = "times new roman"
+FONT_SIZE = 20
 GROUP = "maker"
 
 # Colors:
@@ -31,3 +31,7 @@ C["font"] = (0, 0, 0)
 C["hover"] = (185, 185, 185)
 C["click"] = (145, 145, 145)
 C["line"] = (0, 0, 0)
+C["topbar"] = (180, 180, 180)
+C["exit"] = (139, 0, 0)
+C["tick"] = (139, 0, 0)
+C["tick_click"] = (210, 210, 210)

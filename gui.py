@@ -10,20 +10,26 @@ class Group:
     window = pygame.display.set_mode((1, 1))  # This is suboptimal, but it works
     font = pygame.font.SysFont(FONT, FONT_SIZE)
     manager = []
+    collision = False
+    passive_collision = False
 
     def __init__(self):
         self.manager.append(self)
 
     @staticmethod
-    def all_event(group, mouse, event_list, include_global=True):
+    def all_event(group, mouse, event_list, include_global=True, reset=True):
+        if reset:
+            Group.collision = False
+            Group.passive_collision = False
+
         for item in reversed(Group.manager):
-            if item.visible and (item.group == group or (item.group is "" and include_global)):
+            if item.visible and (item.group == group or (include_global and item.group is "")):
                 item.event(mouse, event_list)
 
     @staticmethod
     def all_draw(group, include_global=True):
         for item in Group.manager:
-            if item.visible and (item.group == group or (item.group is "" and include_global)):
+            if item.visible and (item.group == group or (include_global and item.group is "")):
                 item.draw()
 
     @staticmethod
@@ -52,6 +58,12 @@ class Group:
         for obj in Group.manager:
             if obj.get_id() == item_id:
                 return obj
+
+    @staticmethod
+    def no_events():
+        if Group.passive_collision or Group.collision:
+            return False
+        return True
 
 
 class Widget(Group):
@@ -129,9 +141,16 @@ class Widget(Group):
     def get_value_pointer(self):
         pass
 
-    def check_collision(self, mouse):
+    def check_collision(self, mouse, passive=False):
         if self.rect.collidepoint(mouse):
-            return True
+            if passive:
+                Group.passive_collision = True
+                return True
+
+            else:
+                if not Group.collision:
+                    Group.collision = True
+                    return True
 
     def set_func(self, func):
         self.func = func
@@ -203,18 +222,21 @@ class Display(Widget):
         self._text()
 
     def event(self, mouse, event_list):
-        pass
+        self.check_collision(mouse)
 
 
 class Overlay(Widget):
     unique_counter = 0
 
-    def __init__(self, rect, group, outline=1, text="", exit_button=40, movable=True, window_name=""):
+    def __init__(self, rect, group, outline=1, text="", exit_size=(40, 30), movable=True, window_name="",
+                 topbar_height=30):
         super().__init__(rect, group, None, outline, text)
         self.set_color(["WHITE"])
         self.movable = movable
         self.window_name = window_name
-        self.exit_button = exit_button
+        self.exit_button = None
+        self.exit_size = exit_size
+        self.topbar_height = topbar_height
 
         self.group_share = group + "_" + str(self.unique_counter) + "overlay"
         Overlay.unique_counter += 1
@@ -228,13 +250,18 @@ class Overlay(Widget):
         self.__ui()
 
     def __ui(self):
-        self.topbar = Display((0, 0, self.rect[2], FONT_SIZE),
+        self.topbar = Display((0, 0, self.rect[2]-self.exit_size[0], self.topbar_height),
                               self.group, text=self.window_name)
-        self.topbar.set_color(["LIGHTGREY"])
+        self.topbar.set_color(["topbar"])
 
-        if self.exit_button is not False:
-            self.exit_button = Button((self.rect[2]-self.exit_button, 0, self.exit_button, FONT_SIZE),
-                                      self.group, self.quit, text="X")
+        if self.topbar_height == 0: self.topbar.set_text("")
+
+        self.exit_button = Button((self.rect[2] - self.exit_size[0], 0, *self.exit_size),
+                                  self.group, self.quit, text="X")
+        self.exit_button.set_color(c_font="exit")
+
+        if self.exit_size == (0, 0):
+            self.exit_button.set_text("")
 
         self.add(self.topbar, self.exit_button)
 
@@ -257,8 +284,7 @@ class Overlay(Widget):
         Group.all_draw(self.group_share, include_global=False)  # Otherwise if the overlay is global -> recursion
 
     def event(self, mouse, event_list):
-        if self.check_collision(mouse):
-            pass
+        self.check_collision(mouse, passive=True)
 
         if self.movable:
             if self.topbar.check_collision(mouse) or self.mouse_move:
@@ -276,7 +302,7 @@ class Overlay(Widget):
                 else:
                     self.mouse_move = False
 
-        Group.all_event(self.group_share, mouse, event_list, include_global=False)
+        Group.all_event(self.group_share, mouse, event_list, include_global=False, reset=False)
 
     def loop(self):
         self.set_visible(True)
@@ -430,7 +456,7 @@ class Scroll(Widget):
         Group.all_draw(self.group_share, include_global=False)
 
     def event(self, mouse, event_list):
-        if self.check_collision(mouse):
+        if self.check_collision(mouse, passive=True):
             for event in event_list:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 4:
@@ -443,7 +469,7 @@ class Scroll(Widget):
                             obj.rect.y -= self.scroll_speed
                             self.calc_visible(obj)
 
-        Group.all_event(self.group_share, mouse, event_list, include_global=False)
+        Group.all_event(self.group_share, mouse, event_list, include_global=False, reset=False)
 
     def calc_visible(self, obj):
         if self.rect.y <= obj.rect.y and obj.rect.y + obj.rect.height <= self.rect.y + self.rect.height - self.margin:
@@ -514,7 +540,7 @@ class Tick(Widget):
         super().__init__(rect, group, func, outline, text)
         self.ticked = False
         self.hover = False
-        self.set_color(c_font="DARKRED", c_click=["main"])
+        self.set_color(c_font="tick", c_click=["tick_click"])
 
     def draw(self):
         self.window.blit(self.c_main(), self.rect)
@@ -568,6 +594,10 @@ class Builder:
     @staticmethod
     def show(name):
         Builder.get(name).set_visible(True)
+
+    @staticmethod
+    def toggle_visible(name):
+        Builder.get(name).toggle_visible()
 
     @staticmethod
     def get_value():

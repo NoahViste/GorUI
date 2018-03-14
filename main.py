@@ -30,7 +30,7 @@ class Tester:
     def initUI(self):
         Button((0, 0, 40, 40), self.group, self.quit, text="X")
         g = Button((40, 0, 120, 40), self.group, None, text="Settings")
-        Button((160, 0, 80, 40), self.group, partial(Builder.show, "select_widget"), text="Select")
+        Button((160, 0, 80, 40), self.group, partial(Builder.toggle_visible, "select_widget"), text="Select")
         Display((240, 0, 60, 40), self.group, text=Builder)
 
         ov = Overlay((50, 50, 300, 400), self.group, window_name="Canvas Resolution")
@@ -42,6 +42,8 @@ class Tester:
         color = Button((20, 110, 260, 30), self.group, self.can.reset_position, text="Reset position")
         color.set_color(c_font="DARKRED")
         ov.add(color)
+
+        ov.add(Tick((20, 80, 20, 20), self.group))
 
         ov.add(Button((20, 360, 260, 30), self.group, self.set_value, text="Edit"))
 
@@ -71,7 +73,7 @@ class Tester:
 
         Group.all_event(self.group, self.mouse, event_list)
 
-        self.can.event(self.mouse, event_list)
+        if Group.no_events(): self.can.event(self.mouse, event_list)
 
         for event in event_list:
             if event.type == pygame.QUIT:
