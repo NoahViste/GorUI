@@ -250,7 +250,7 @@ class Overlay(Widget):
         self.__ui()
 
     def __ui(self):
-        self.topbar = Display((0, 0, self.rect[2]-self.exit_size[0], self.topbar_height),
+        self.topbar = Display((0, 0, self.rect[2]-self.exit_size[0]+1, self.topbar_height),
                               self.group, text=self.window_name)
         self.topbar.set_color(["topbar"])
 
