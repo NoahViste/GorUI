@@ -71,23 +71,18 @@ class Canvas:
 
     def __init__(self, width, height):
         self.rect = pygame.Rect(0, 0, width, height)
+        self.selection = pygame.Rect(0, 0, 0, 0)
         self.texture = Texture(self.rect, "canvas")
         self.aspect_ratio = (16, 9)
+        self.grid = self.aspect_ratio
+        self.margin = [0, 0]
         self.reset_position()
         self.mouse_move = False
-        self.grid = self.aspect_ratio
-        self.selection = pygame.Rect(0, 0, 0, 0)
 
     def draw(self):
-        self.window.blit(self.texture(), self.rect)
-        pygame.draw.rect(self.window, C["RED"], self.selection, 3)
-        for i in range(self.grid[0]):
-            temp = self.rect[0]+i*(self.rect[2]//self.grid[0])
-            pygame.draw.line(self.window, C["BLACK"], (temp, self.rect[1]), (temp, self.rect[1]+self.rect[3]))
-
-        for j in range(self.grid[1]):
-            temp = self.rect[1]+j*(self.rect[3]//self.grid[1])
-            pygame.draw.line(self.window, C["BLACK"], (self.rect[0], temp), (self.rect[0]+self.rect[2], temp))
+        pygame.draw.rect(self.window, C["canvas"], self.rect)
+        pygame.draw.rect(self.window, C["RED"], self.selection, 2)
+        self.draw_grid()
 
     def event(self, mouse, event_list):
         pressed = pygame.key.get_pressed()
@@ -96,8 +91,8 @@ class Canvas:
             if pressed[pygame.K_SPACE] and pygame.mouse.get_pressed()[0]:
                 if not self.mouse_move:
                     self.mouse_move = mouse
-                self.rect[0] -= self.mouse_move[0] - mouse[0]
-                self.rect[1] -= self.mouse_move[1] - mouse[1]
+                self.margin[0] -= self.mouse_move[0] - mouse[0]
+                self.margin[1] -= self.mouse_move[1] - mouse[1]
 
                 self.mouse_move = mouse
             else:
@@ -105,7 +100,7 @@ class Canvas:
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        self.selection.topleft = mouse
+                        self.to_grid(mouse)
                     if event.button == 3:
                         self.selection.size = (mouse[0] - self.selection.x, mouse[1] - self.selection.y)
                     if event.button == 4:
@@ -119,6 +114,19 @@ class Canvas:
         self.rect.size = size
         self.check_rect_size()
         self.texture.rescale(self.rect)
+
+    def to_grid(self, mouse):
+        self.selection[0] = self.rect[0] + (mouse[0]//self.grid[0])
+        self.selection[1] = self.rect[1] + (mouse[1]//self.grid[1])
+
+    def draw_grid(self):
+        for i in range(self.grid[0]):
+            temp = self.rect[0]+i*(self.rect[2]//self.grid[0])
+            pygame.draw.line(self.window, C["BLACK"], (temp, self.rect[1]), (temp, self.rect[1]+self.rect[3]))
+
+        for j in range(self.grid[1]):
+            temp = self.rect[1]+j*(self.rect[3]//self.grid[1])
+            pygame.draw.line(self.window, C["BLACK"], (self.rect[0], temp), (self.rect[0]+self.rect[2], temp))
 
     def grow(self, size):
         self.rect.inflate_ip(size)

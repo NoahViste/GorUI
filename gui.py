@@ -115,9 +115,9 @@ class Widget(Group):
             txt = self.font.render(str(text), True, self.c_font)
 
         if self.align == "center":
-            rect = txt.get_rect(center=(rect[0] + rect[2] / 2, rect[1] + rect[3] / 2))
+            rect = txt.get_rect(center=rect.center)
         else:
-            rect = txt.get_rect(midleft=(rect[0], rect[1] + rect[3] / 2))
+            rect = txt.get_rect(midleft=rect.midleft)
         self.window.blit(txt, (rect[0]+self.offset[0], rect[1]+self.offset[1]))
 
     def toggle_visible(self):
