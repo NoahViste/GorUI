@@ -43,8 +43,11 @@ class Tester:
         color.set_color(c_font="DARKRED")
         ov.add(color)
 
-        ov.add(Tick((20, 80, 20, 20), self.group))
+        q = Display((10, 80, 30, 20), self.group, text="5")
         m = Slider((40, 80, 200, 20), self.group, margin=3)
+        q.pointers["outline"] = (m, "percent")
+        print(q.text)
+        ov.add(q)
         ov.add(m, m.pull)
 
         ov.add(Button((20, 360, 260, 30), self.group, self.set_value, text="Edit"))

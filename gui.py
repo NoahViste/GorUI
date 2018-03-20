@@ -78,7 +78,7 @@ class Widget(Group):
         self.text = text
         self.visible = True
         self.value = None
-        self.value_pointer = [0]
+        self.pointers = {}
         self.group = group
         self.group_share = None
         self.align = "center"  # Text align
@@ -87,6 +87,13 @@ class Widget(Group):
         self.parent = None
         self.child = None
         Widget.item_id += 1
+
+    def __getattr__(self, key):
+        print(key)
+        if key not in self.pointers:
+            raise AttributeError
+        inst, attr = self.pointers[key]
+        return getattr(inst, attr)
 
     def set_color(self, c_main=["main"], c_outline="outline", c_font="font",
                   c_hover=["hover"], c_click=["click"], c_line="line"):
@@ -137,9 +144,6 @@ class Widget(Group):
 
     def get_value(self):
         return self.value
-
-    def get_value_pointer(self):
-        pass
 
     def check_collision(self, mouse, passive=False):
         if self.rect.collidepoint(mouse):
