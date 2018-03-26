@@ -45,8 +45,9 @@ class Tester:
 
         q = Display((10, 80, 30, 20), self.group, text="5")
         m = Slider((40, 80, 200, 20), self.group, margin=3)
-        q.pointers["outline"] = (m, "percent")
-        print(q.text)
+
+        q.text = Pointer(m, "percent")
+
         ov.add(q)
         ov.add(m, m.pull)
 

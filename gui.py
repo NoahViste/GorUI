@@ -5,6 +5,16 @@ import copy
 import time
 
 
+class Pointer:
+    def __init__(self, target_class, target_var):
+        self.target_class = target_class
+        self.target_var = target_var
+
+    def __repr__(self):
+        print("ss")
+        return str(getattr(self.target_class, self.target_var))
+
+
 class Group:
     pygame.init()
     window = pygame.display.set_mode((1, 1))  # This is suboptimal, but it works
@@ -78,7 +88,8 @@ class Widget(Group):
         self.text = text
         self.visible = True
         self.value = None
-        self.pointers = {}
+        self.target_class = None
+        self.target_var = None
         self.group = group
         self.group_share = None
         self.align = "center"  # Text align
@@ -87,13 +98,6 @@ class Widget(Group):
         self.parent = None
         self.child = None
         Widget.item_id += 1
-
-    def __getattr__(self, key):
-        print(key)
-        if key not in self.pointers:
-            raise AttributeError
-        inst, attr = self.pointers[key]
-        return getattr(inst, attr)
 
     def set_color(self, c_main=["main"], c_outline="outline", c_font="font",
                   c_hover=["hover"], c_click=["click"], c_line="line"):
@@ -114,10 +118,7 @@ class Widget(Group):
     def _text(self, text=None):
         rect = self.rect
         if text is None:
-            try:
-                txt = self.font.render(str(self.text.get_value()), True, self.c_font)
-            except AttributeError:
-                txt = self.font.render(str(self.text), True, self.c_font)
+            txt = self.font.render(str(self.text), True, self.c_font)
         else:
             txt = self.font.render(str(text), True, self.c_font)
 
