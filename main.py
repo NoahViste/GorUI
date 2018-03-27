@@ -39,18 +39,9 @@ class Tester:
         self.width = Input((180, 40, 50, 30), self.group, int_only=True, keep_text=False, max_length=3)
         self.height = Input((230, 40, 50, 30), self.group, int_only=True, keep_text=False, max_length=3)
 
-        color = Button((20, 110, 260, 30), self.group, self.can.reset_position, text="Reset position")
+        color = Button((20, 120, 260, 30), self.group, self.can.reset_position, text="Reset position")
         color.set_color(c_font="DARKRED")
         ov.add(color)
-
-        q = Display((10, 80, 30, 20), self.group, text="5")
-        m = Slider((40, 80, 200, 20), self.group, margin=3)
-
-        q.pointer("x", m, "percent", q.rect)
-        q.pointer("text", m, "percent")
-
-        ov.add(q)
-        ov.add(m, m.pull)
 
         ov.add(Button((20, 360, 260, 30), self.group, self.set_value, text="Edit"))
 

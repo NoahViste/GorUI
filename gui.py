@@ -487,16 +487,18 @@ class Scroll(Widget):
 
 
 class Slider(Widget):
-    def __init__(self, rect, group, func=0, outline=1, margin=10, line_width=1):
+    def __init__(self, rect, group, func=0, outline=1, margin=10, line_width=1, pull_w=15, pull_h=0):
         super().__init__(rect, group, None, outline, "")
-        self.pull = Button((self.rect.x + margin, self.rect.y + margin, 15, self.rect.height-2*margin), self.group)
+        self.pull = Button((self.rect.x + margin, self.rect.y + margin - pull_h // 2, pull_w, self.rect.height-2*margin+pull_h),
+                           self.group)
         self.func = func
         self.margin = margin
         self.line_width = line_width
         self.pulling = False
         self.pull.rect.centerx = self._line_start[0]
 
-    def get_value(self):
+    @property
+    def current_value(self):
         if type(self.func) is int:
             return self.percent
 
@@ -528,6 +530,8 @@ class Slider(Widget):
         self._text()
 
     def event(self, mouse, event_list):
+        self.current_value  # If it's a func it gets called
+
         if self.pull.get_pressed():
             self.pulling = True
 
