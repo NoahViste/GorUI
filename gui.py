@@ -5,16 +5,6 @@ import copy
 import time
 
 
-class Pointer:
-    def __init__(self, target_class, target_var):
-        self.target_class = target_class
-        self.target_var = target_var
-
-    def __repr__(self):
-        print("ss")
-        return str(getattr(self.target_class, self.target_var))
-
-
 class Group:
     pygame.init()
     window = pygame.display.set_mode((1, 1))  # This is suboptimal, but it works
@@ -34,6 +24,7 @@ class Group:
 
         for item in reversed(Group.manager):
             if item.visible and (item.group == group or (include_global and item.group is "")):
+                item.update_vars()
                 item.event(mouse, event_list)
 
     @staticmethod
@@ -88,8 +79,7 @@ class Widget(Group):
         self.text = text
         self.visible = True
         self.value = None
-        self.target_class = None
-        self.target_var = None
+        self.pointer_dict = {}
         self.group = group
         self.group_share = None
         self.align = "center"  # Text align
@@ -114,6 +104,18 @@ class Widget(Group):
     def align_text(self, align="center", offset=(0, 0)):
         self.align = align
         self.offset = offset
+
+    def pointer(self, current_var, target_class, target_var, current_class=None):
+        def func():
+            return getattr(target_class, target_var)
+        self.pointer_dict[current_var] = (func, current_class)
+
+    def update_vars(self):
+        for var, target in self.pointer_dict.items():
+            if target[1] is None:
+                setattr(self, var, target[0]())
+            else:
+                setattr(target[1], var, target[0]())
 
     def _text(self, text=None):
         rect = self.rect
@@ -604,9 +606,6 @@ class Builder:
     def toggle_visible(name):
         Builder.get(name).toggle_visible()
 
-    @staticmethod
-    def get_value():
-        return Builder.selected_widget
 
 
 

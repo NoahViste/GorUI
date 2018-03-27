@@ -31,7 +31,7 @@ class Tester:
         Button((0, 0, 40, 40), self.group, self.quit, text="X")
         g = Button((40, 0, 120, 40), self.group, None, text="Settings")
         Button((160, 0, 80, 40), self.group, partial(Builder.toggle_visible, "select_widget"), text="Select")
-        Display((240, 0, 60, 40), self.group, text=Builder)
+        Display((240, 0, 60, 40), self.group).pointer("text", Builder, "selected_widget")
 
         ov = Overlay((50, 50, 300, 400), self.group, window_name="Canvas Resolution")
         ov.toggle_visible()
@@ -46,7 +46,8 @@ class Tester:
         q = Display((10, 80, 30, 20), self.group, text="5")
         m = Slider((40, 80, 200, 20), self.group, margin=3)
 
-        q.text = Pointer(m, "percent")
+        q.pointer("x", m, "percent", q.rect)
+        q.pointer("text", m, "percent")
 
         ov.add(q)
         ov.add(m, m.pull)
