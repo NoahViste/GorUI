@@ -8,23 +8,23 @@ import time
 class Group:
     pygame.init()
     window = pygame.display.set_mode((1, 1))  # This is suboptimal, but it works
-    font = pygame.font.SysFont(FONT, FONT_SIZE)
-    manager = []
-    collision = False
-    passive_collision = False
+    font = pygame.font.SysFont(FONT, FONT_SIZE)  # TODO: implement font sizes
+    manager = []  # Keeps track of all the widgets
+    collision = False  # If the mouse hovers over a dynamic widget like buttons, input boxes, etc...
+    passive_collision = False  # If the mouse hovers over a passive widget like overlays or scrolls
 
     def __init__(self):
         self.manager.append(self)
 
     @staticmethod
     def all_event(group, mouse, event_list, include_global=True, reset=True):
-        if reset:
+        if reset:  # all_event gets called by overlays and scrolls, so we don't want the collisions to reset
             Group.collision = False
             Group.passive_collision = False
 
-        for item in reversed(Group.manager):
+        for item in reversed(Group.manager):  # In case you use displays to draw backgrounds, and other stuff
             if item.visible and (item.group == group or (include_global and item.group is "")):
-                item.update_vars()
+                item.update_vars()  # This gets the pointers value, and gives it to the local variable
                 item.event(mouse, event_list)
 
     @staticmethod
@@ -62,13 +62,14 @@ class Group:
 
     @staticmethod
     def no_events():
+        # Use this for non GUI related stuff, returns False if the mouse is hovering a widget
         if Group.passive_collision or Group.collision:
             return False
         return True
 
 
 class Widget(Group):
-    item_id = 0
+    item_id = 0  # Giving every widget a unique ID in case you need it
 
     def __init__(self, rect, group, func, outline, text):
         super().__init__()
@@ -78,17 +79,16 @@ class Widget(Group):
         self.outline = outline
         self.text = text
         self.visible = True
-        self.value = None
-        self.pointer_dict = {}
-        self.group = group
-        self.group_share = None
+        self.value = None  # Various uses, for buttons is the return value of the function
+        self.pointer_dict = {}  # Keeps track of all the pointers used in pointer and update_vars functions
+        self.group = group  # The group the widget is in
+        self.group_share = None  # If the widget has children this is the group given to them
         self.align = "center"  # Text align
-        self.offset = (0, 0)  # Offsets text
+        self.offset = (0, 0)  # Text offset
         self.id = self.item_id
-        self.parent = None
-        self.child = None
         Widget.item_id += 1
 
+    # Don't try to understand, this is just how the current textures.py implementation works
     def set_color(self, c_main=["main"], c_outline="outline", c_font="font",
                   c_hover=["hover"], c_click=["click"], c_line="line"):
         self.c_main = Texture(self.rect, *c_main)
@@ -106,13 +106,14 @@ class Widget(Group):
         self.offset = offset
 
     def pointer(self, current_var, target_class, target_var, current_class=None):
+        # current_class is used if you need to change class variables, like self.rect
         def func():
             return getattr(target_class, target_var)
         self.pointer_dict[current_var] = (func, current_class)
 
     def update_vars(self):
         for var, target in self.pointer_dict.items():
-            if target[1] is None:
+            if target[1] is None:  # If you need to change class variables, like self.rect
                 setattr(self, var, target[0]())
             else:
                 setattr(target[1], var, target[0]())
@@ -150,7 +151,7 @@ class Widget(Group):
 
     def check_collision(self, mouse, passive=False):
         if self.rect.collidepoint(mouse):
-            if passive:
+            if passive:  # Passive doesn't hijack, like overlays or scrolls
                 Group.passive_collision = True
                 return True
 
@@ -162,17 +163,8 @@ class Widget(Group):
     def set_func(self, func):
         self.func = func
 
-    def set_parent(self, parent):
-        self.parent = parent
-
-    def set_child(self, child):
-        self.child = child
-
     def get_id(self):
         return self.id
-
-    def get_self(self):
-        return self
 
     def get_text(self):
         return str(self.text)
@@ -214,6 +206,7 @@ class Button(Widget):
             self.state = "None"
 
     def get_pressed(self):
+        # If the button is being held down, used by the slider widget for example
         if self.state == "Click":
             return True
         return False
@@ -233,35 +226,35 @@ class Display(Widget):
 
 
 class Overlay(Widget):
-    unique_counter = 0
+    unique_counter = 0  # So the overlay children don't share the same group when you have more than 1 overlay
 
     def __init__(self, rect, group, outline=1, text="", exit_size=(40, 30), movable=True, window_name="",
                  topbar_height=30):
         super().__init__(rect, group, None, outline, text)
         self.set_color(["WHITE"])
-        self.movable = movable
+        self.movable = movable  # If you can click and drag on the topbar to move the overlay around
         self.window_name = window_name
-        self.exit_button = None
+        self.exit_button = None  # Declared in __ui function
         self.exit_size = exit_size
         self.topbar_height = topbar_height
 
-        self.group_share = group + "_" + str(self.unique_counter) + "overlay"
+        self.group_share = group + "_" + str(self.unique_counter) + "overlay"  # Group given to overlay children
         Overlay.unique_counter += 1
-        self.child_list = []
-        self.original_child_list = []
+        self.child_list = []  # Keeps track of all the children widgets
+        self.original_child_list = []  # Keep track of the original position in case you want to reset it
 
         self.running = False
-        self.mouse_move = False
-        self.original_rect = pygame.Rect(self.rect)
+        self.mouse_move = False  # Used when moving the overlay around
+        self.original_rect = pygame.Rect(self.rect)  # Keeps track of the original position in case you want to reset it
 
-        self.__ui()
+        self.__ui()  # Creates the topbar and the exitbutton
 
     def __ui(self):
         self.topbar = Display((0, 0, self.rect[2]-self.exit_size[0]+1, self.topbar_height),
                               self.group, text=self.window_name)
         self.topbar.set_color(["topbar"])
 
-        if self.topbar_height == 0: self.topbar.set_text("")
+        if self.topbar_height == 0: self.set_window_name("")
 
         self.exit_button = Button((self.rect[2] - self.exit_size[0], 0, *self.exit_size),
                                   self.group, self.quit, text="X")
@@ -275,13 +268,13 @@ class Overlay(Widget):
     def add(self, *args, keep_group=False):
         for obj in args:
             if not keep_group: obj.group = self.group_share
-            obj.rect.x += self.rect.x
+            obj.rect.x += self.rect.x  # So you don't need to know where the overlay is, just how much to offset it
             obj.rect.y += self.rect.y
             self.child_list.append(obj)
             self.original_child_list.append(pygame.Rect(obj.rect))
 
     def add_children(self, *args):
-        self.add(*args, keep_group=True)
+        self.add(*args, keep_group=True)  # I've forgotten why I'm doing this
 
     def draw(self):
         self.window.blit(self.c_main(), self.rect)
@@ -294,6 +287,7 @@ class Overlay(Widget):
         self.check_collision(mouse, passive=True)
 
         if self.movable:
+            # This is just to make the overlay move
             if self.topbar.check_collision(mouse) or self.mouse_move:
                 if pygame.mouse.get_pressed()[0]:
                     if not self.mouse_move:
@@ -309,12 +303,14 @@ class Overlay(Widget):
                 else:
                     self.mouse_move = False
 
+        # reset=False, so it doesn't reset the collisions
         Group.all_event(self.group_share, mouse, event_list, include_global=False, reset=False)
 
     def loop(self):
         self.set_visible(True)
         self.running = True
 
+        # Locks it into a loop so you're forced to interact with the overlay
         while self.running:
             self.draw()
 
@@ -336,6 +332,7 @@ class Overlay(Widget):
         self.topbar.set_text(new)
 
     def reset(self):
+        # Resets the position of the overlay, only used if self.movable=True
         for i in range(len(self.child_list)):
             self.child_list[i].rect = pygame.Rect(self.original_child_list[i])
         self.rect = pygame.Rect(self.original_rect)
@@ -352,18 +349,19 @@ class Input(Widget):
         self.value = text
         if int_only: self.value = default_int
         self.state = "None"  # None, Clicked
-        self.keep_text = keep_text
-        self.int_only = int_only
+        self.keep_text = keep_text  # Next time you click the input box it either keeps the text or resets it
+        self.int_only = int_only  # Only allows integers
         self.default_int = default_int
-        self.max_length = max_length
+        self.max_length = max_length  # Todo: Implement scrolling function if the text goes outside the box
 
     def draw(self):
         if self.state == "None":
             self.window.blit(self.c_main(), self.rect)
         elif self.state == "Clicked":
             self.window.blit(self.c_click(), self.rect)
+
         self.draw_outline()
-        self._text(self.value)
+        self._text(self.value)  # We use the self.value as text and not self.text like default
 
     def event(self, mouse, event_list):
         for event in event_list:
@@ -382,14 +380,17 @@ class Input(Widget):
         if self.state == "Clicked":
             for event in event_list:
                 if event.type == pygame.KEYDOWN:
+                    # If the user presses ENTER
                     if event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
                         self.state = "None"
                         return
+
+                    # If the user presses BACKSPACE
                     elif event.key == pygame.K_BACKSPACE:
                         if self.int_only:
                             try:
-                                self.value = int(str(self.value)[:-1])
-                            except ValueError:
+                                self.value = int(str(self.value)[:-1])  # We convert it into a string then back to int
+                            except ValueError:  # If the length < 0, we set the value to 0
                                 self.value = 0
                         else:
                             self.value = self.value[:-1]
@@ -403,24 +404,24 @@ class Input(Widget):
                                 print("Expected int")
 
                         else:
-                            self.value += event.unicode
+                            self.value += event.unicode  # event.unicode is a godsend
 
 
 class Scroll(Widget):
-    unique_counter = 0
+    unique_counter = 0  # So the scroll children don't share the same group when you have more than 1 scroll
 
     def __init__(self, rect, group, outline=1, scroll_speed=30, margin=10):
         super().__init__(rect, group, None, outline, "")
-        self.scroll_speed = scroll_speed
+        self.scroll_speed = scroll_speed  # It's recommended having this the same as the height of 1 element
         self.margin = margin
         self.elements = [[]]
-        self.displace = 0
+        self.displace = 0  # Keeps track of the height of all elements stacked on top of each other
 
         self.group_share = group + "_" + str(self.unique_counter) + "scroll"
         Scroll.unique_counter += 1
 
     def add_line(self, *args, auto_align=True):
-        total_width = 0
+        total_width = 0  # Keeps track of the width when you use auto align
         for obj in args:
             obj.group = self.group_share
             obj.rect.x += self.rect.x + self.margin + total_width
@@ -429,6 +430,7 @@ class Scroll(Widget):
 
             self.calc_visible(obj)
 
+        # Using last element height, so don't add different heights on the same line
         self.displace += obj.rect.height
         self.elements.append(list(args))
 
@@ -479,6 +481,8 @@ class Scroll(Widget):
         Group.all_event(self.group_share, mouse, event_list, include_global=False, reset=False)
 
     def calc_visible(self, obj):
+        # If the element is within the rect - margin, we draw it
+        # TODO: Add partial drawing, if half the rect is outside, draw half the rect
         if self.rect.y <= obj.rect.y and obj.rect.y + obj.rect.height <= self.rect.y + self.rect.height - self.margin:
             obj.set_visible(True)
 
@@ -489,38 +493,42 @@ class Scroll(Widget):
 class Slider(Widget):
     def __init__(self, rect, group, func=0, outline=1, margin=10, line_width=1, pull_w=15, pull_h=0):
         super().__init__(rect, group, None, outline, "")
+        # This is pretty bad, TODO: fix the pull button size
         self.pull = Button((self.rect.x + margin, self.rect.y + margin - pull_h // 2, pull_w, self.rect.height-2*margin+pull_h),
                            self.group)
-        self.func = func
+        self.func = func  # The type of func determines what's returned
         self.margin = margin
         self.line_width = line_width
         self.pulling = False
         self.pull.rect.centerx = self._line_start[0]
 
     @property
-    def current_value(self):
+    def current_value(self):  # TODO: Fix function name (if we create a value property -> conflict with init method)
         if type(self.func) is int:
             return self.percent
 
         if type(self.func) is list:
             try:
-                return self.func[self.percent//(100//len(self.func))]
+                return self.func[self.percent//(100//len(self.func))]  # Translates percent into list position
             except IndexError:
-                return self.func[len(self.func)-1]
+                return self.func[len(self.func)-1]  # Issue with extremities where it goes outside the list
 
         if callable(self.func):
-            return self.func(self.percent)
+            return self.func(self.percent)  # Calls the function given with the percent as argument
 
     @property
     def percent(self):
+        # Translates the pull position to percent
         return int((self.pull.rect.centerx - self._line_start[0]) / (self._line_end[0] - self._line_start[0]) * 100)
 
     @property
     def _line_start(self):
+        # In case the pull gets moved (for example if inside an overlay)
         return self.rect.x + 2*self.margin, self.rect.centery
 
     @property
     def _line_end(self):
+        # Same idea as above
         return self.rect.x + self.rect.width - 2*self.margin, self.rect.centery
 
     def draw(self):
@@ -530,11 +538,12 @@ class Slider(Widget):
         self._text()
 
     def event(self, mouse, event_list):
-        self.current_value  # If it's a func it gets called
+        self.current_value  # If it's a func the property never gets called, and so the function never gets called
 
-        if self.pull.get_pressed():
+        if self.pull.get_pressed():  # Checks if the button is being pressed
             self.pulling = True
 
+        # This is done because the mouse moves too fast for the button to catch up
         if pygame.mouse.get_pressed()[0] and self.pulling:
             self.pull.rect.centerx = mouse[0]
             if self.pull.rect.centerx < self._line_start[0]:
@@ -576,6 +585,17 @@ class Tick(Widget):
 
     def get_value(self):
         return self.ticked
+
+
+class Dropdown(Widget):
+    def __init__(self, rect, group, outline=1, text=""):
+        super().__init__(rect, group, None, outline, text)
+
+    def draw(self):
+        pass
+
+    def event(self):
+        pass
 
 
 class Builder:
