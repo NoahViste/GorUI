@@ -352,7 +352,7 @@ class Input(Widget):
         self.keep_text = keep_text  # Next time you click the input box it either keeps the text or resets it
         self.int_only = int_only  # Only allows integers
         self.default_int = default_int
-        self.max_length = max_length  # Todo: Implement scrolling function if the text goes outside the box
+        self.max_length = max_length  # TODO: Implement scrolling function if the text goes outside the box
 
     def draw(self):
         if self.state == "None":
@@ -587,15 +587,32 @@ class Tick(Widget):
         return self.ticked
 
 
-class Dropdown(Widget):
+class Dropdown(Button):
+    unique_counter = 0  # So the dropdown children don't share the same group when you have more than 1 dropdown
+
     def __init__(self, rect, group, outline=1, text=""):
-        super().__init__(rect, group, None, outline, text)
+        super().__init__(rect, group, self.toggle_all, outline, text)
 
-    def draw(self):
-        pass
+        self.displace = self.rect.height
 
-    def event(self):
-        pass
+        self.group_share = group + "_" + str(self.unique_counter) + "dropdown"
+        Dropdown.unique_counter += 1
+
+        self.elements = []
+
+    def add(self, *args):
+        for obj in args:
+            obj.group = self.group
+            obj.rect.x = self.rect.x
+            obj.rect.y = self.rect.y + self.displace
+
+            self.displace += obj.rect.height
+            obj.set_visible(False)
+            self.elements.append(obj)
+
+    def toggle_all(self):
+        for obj in self.elements:
+            obj.toggle_visible()
 
 
 class Builder:

@@ -81,8 +81,13 @@ def create_widget():
     text_dis.align_text("left", (5, 0))
     text_dis.set_color(["LIGHTGREY"])
     text_in = Input((170, 130, 210, 30), "")
+    dropdown = Dropdown((20, 170, 210, 30), "", text="Tester")
+    dropdown.add(Display((0, 0, 210, 30), "", text="eyyy"),
+                 Display((0, 0, 210, 30), "", text="adssadl"),
+                 Display((0, 0, 210, 30), "", text="poooasd"))
 
-    ov.add(box, group_dis, group_in, outline_dis, outline_in, outline_in.pull, outline_cou, text_dis, text_in)
+    ov.add(box, group_dis, group_in, outline_dis, outline_in, outline_in.pull, outline_cou, text_dis, text_in, dropdown)
+    ov.add_children(*dropdown.elements)
 
     return ov
 
