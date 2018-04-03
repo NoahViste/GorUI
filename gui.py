@@ -491,7 +491,7 @@ class Scroll(Widget):
 
 
 class Slider(Widget):
-    def __init__(self, rect, group, func=0, outline=1, margin=10, line_width=1, pull_w=15, pull_h=0):
+    def __init__(self, rect, group, func=0, outline=1, margin=10, line_width=1, pull_w=15, pull_h=0, default_percent=0):
         super().__init__(rect, group, None, outline, "")
         # This is pretty bad, TODO: fix the pull button size
         self.pull = Button((self.rect.x + margin, self.rect.y + margin - pull_h // 2, pull_w, self.rect.height-2*margin+pull_h),
@@ -501,6 +501,15 @@ class Slider(Widget):
         self.line_width = line_width
         self.pulling = False
         self.pull.rect.centerx = self._line_start[0]
+        self.default_percent = default_percent
+        if default_percent != 0: self.set_default(default_percent)
+
+    def set_default(self, var):
+        while self.pull.rect.centerx < self._line_end[0]:
+            if self.percent == var:
+                break
+            self.pull.rect.centerx += 1
+
 
     @property
     def current_value(self):  # TODO: Fix function name (if we create a value property -> conflict with init method)

@@ -73,7 +73,7 @@ def create_widget():
     outline_dis = Display((20, 90, 150, 30), "", text="Outline:", outline=-1)
     outline_dis.align_text("left", (5, 0))
     outline_dis.set_color(["LIGHTGREY"])
-    outline_in = Slider((170, 90, 180, 30), "", func=[0, 1, 2, 3, 4, 5], pull_h=10)
+    outline_in = Slider((170, 90, 180, 30), "", func=[0, 1, 2, 3, 4, 5], pull_h=10, default_percent=20)
     outline_cou = Display((349, 90, 31, 30), "")
     outline_cou.pointer("text", outline_in, "current_value")
     outline_cou.pointer("value", outline_in, "current_value")
@@ -81,13 +81,8 @@ def create_widget():
     text_dis.align_text("left", (5, 0))
     text_dis.set_color(["LIGHTGREY"])
     text_in = Input((170, 130, 210, 30), "")
-    dropdown = Dropdown((20, 170, 210, 30), "", text="Tester")
-    dropdown.add(Display((0, 0, 210, 30), "", text="eyyy"),
-                 Display((0, 0, 210, 30), "", text="adssadl"),
-                 Display((0, 0, 210, 30), "", text="poooasd"))
 
-    ov.add(box, group_dis, group_in, outline_dis, outline_in, outline_in.pull, outline_cou, text_dis, text_in, dropdown)
-    ov.add_children(*dropdown.elements)
+    ov.add(box, group_dis, group_in, outline_dis, outline_in, outline_in.pull, outline_cou, text_dis, text_in)
 
     return ov
 
@@ -103,13 +98,15 @@ class Canvas:
 
     def __init__(self, width, height):
         self.rect = pygame.Rect(0, 0, width, height)
-        self.texture = Texture(self.rect, "canvas")
         self.aspect_ratio = (16, 9)
+        self.check_rect_size()
+        self.texture = Texture(self.rect, "canvas")
         self.grid = self.aspect_ratio
         self.reset_position()
         self.mouse_move = False
         self.start_select = [0, 0]
         self.end_select = [0, 0]
+        self.dragging = False
 
     def draw(self):
         pygame.draw.rect(self.window, C["canvas"], self.rect)
@@ -121,8 +118,10 @@ class Canvas:
 
     def event(self, mouse, event_list):
         pressed = pygame.key.get_pressed()
-        self.mouse = mouse
-        print(self.grid_mouse)
+        self.mouse = list(mouse)
+
+        if self.dragging:
+            self.end_select = self.grid_mouse
 
         for event in event_list:
             if pressed[pygame.K_SPACE] and pygame.mouse.get_pressed()[0]:
@@ -138,6 +137,7 @@ class Canvas:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         self.start_select = self.grid_mouse
+                        self.dragging = True
                     if event.button == 4:
                         self.grow((self.aspect_ratio[0], self.aspect_ratio[1]))
                     if event.button == 5:
@@ -146,6 +146,7 @@ class Canvas:
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
                         self.end_select = self.grid_mouse
+                        self.dragging = False
 
             if pressed[pygame.K_RETURN]:
                 Builder.toggle_visible("create_widget")
@@ -173,7 +174,7 @@ class Canvas:
 
     def check_rect_size(self):
         for i in self.rect.size:
-            if i <= 0:
+            if i <= 1:
                 self.rect.size = self.aspect_ratio
 
     def reset_position(self):
@@ -185,10 +186,17 @@ class Canvas:
     @property
     def grid_mouse(self):
         # Tests whether or not the mouse is within the grid
-        if self.rect.x <= self.mouse[0] < self.rect.x + self.tile_size[0] * self.grid[0] and \
-                self.rect.y <= self.mouse[1] < self.rect.y + self.tile_size[1] * self.grid[1]:
-            return math.trunc((self.mouse[0] - self.rect.x) / self.tile_size[0]), \
-                   math.trunc((self.mouse[1] - self.rect.y) / self.tile_size[1])
+        if self.rect.x >= self.mouse[0]:
+            self.mouse[0] = self.rect.x
+        if self.rect.y >= self.mouse[1]:
+            self.mouse[1] = self.rect.y
+        if self.mouse[0] > self.rect.x + self.tile_size[0] * self.grid[0]:
+            self.mouse[0] = self.rect.x + self.tile_size[0] * self.grid[0]
+        if self.mouse[1] > self.rect.y + self.tile_size[1] * self.grid[1]:
+            self.mouse[1] = self.rect.y + self.tile_size[1] * self.grid[1]
+
+        return math.trunc((self.mouse[0] - self.rect.x) / self.tile_size[0]), \
+               math.trunc((self.mouse[1] - self.rect.y) / self.tile_size[1])
 
     def from_grid(self, coord):
         return [self.rect.x + (coord[0] * self.tile_size[0]), self.rect.y + (coord[1] * self.tile_size[1])]
