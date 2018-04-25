@@ -284,6 +284,9 @@ class Overlay(Widget):
         Group.all_draw(self.group_share, include_global=False)  # Otherwise if the overlay is global -> recursion
 
     def event(self, mouse, event_list):
+        if Group.passive_collision:
+            Group.collision = True
+
         self.check_collision(mouse, passive=True)
 
         if self.movable:
@@ -509,7 +512,6 @@ class Slider(Widget):
             if self.percent == var:
                 break
             self.pull.rect.centerx += 1
-
 
     @property
     def current_value(self):  # TODO: Fix function name (if we create a value property -> conflict with init method)

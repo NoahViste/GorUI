@@ -149,7 +149,7 @@ class Canvas:
                         self.dragging = False
 
             if pressed[pygame.K_RETURN]:
-                Builder.toggle_visible("create_widget")
+                Builder.get("create_widget").loop()
 
     def set_ratio(self, size):
         self.aspect_ratio = size
